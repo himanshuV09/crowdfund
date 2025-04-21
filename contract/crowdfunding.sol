@@ -8,6 +8,7 @@ contract CrowdFund {
     uint public totalRaised;
 
     mapping(address => uint) public contributions;
+    address[] public contributors;
 
     constructor(uint _goal, uint _durationInDays) {
         owner = msg.sender;
@@ -32,6 +33,12 @@ contract CrowdFund {
 
     function contribute() public payable beforeDeadline {
         require(msg.value > 0, "Must send some ether");
+
+        // Add contributor only once
+        if (contributions[msg.sender] == 0) {
+            contributors.push(msg.sender);
+        }
+
         contributions[msg.sender] += msg.value;
         totalRaised += msg.value;
     }
@@ -48,5 +55,18 @@ contract CrowdFund {
         contributions[msg.sender] = 0;
         payable(msg.sender).transfer(amount);
     }
-}
 
+    function checkCampaignStatus() public view returns (string memory) {
+        if (block.timestamp < deadline) {
+            return "Active";
+        } else if (totalRaised >= goal) {
+            return "Successful";
+        } else {
+            return "Failed";
+        }
+    }
+
+    function getAllContributors() public view returns (address[] memory) {
+        return contributors;
+    }
+}
