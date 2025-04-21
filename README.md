@@ -1,4 +1,4 @@
-# 🚀 CrowdFund DApp
+# 🚀 CrowdFund Smart Contract
 
 ## 📄 Project Description
 CrowdFund is a decentralized crowdfunding smart contract built on the Ethereum blockchain. It allows individuals to contribute Ether to a campaign until a funding goal is reached or the deadline expires. If the goal is met, the owner can withdraw funds; otherwise, contributors can claim refunds.
