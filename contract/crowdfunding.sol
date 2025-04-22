@@ -56,6 +56,7 @@ contract CrowdFund {
         payable(msg.sender).transfer(amount);
     }
 
+    //Check campaign status
     function checkCampaignStatus() public view returns (string memory) {
         if (block.timestamp < deadline) {
             return "Active";
@@ -66,7 +67,13 @@ contract CrowdFund {
         }
     }
 
+    //Return list of all contributors
     function getAllContributors() public view returns (address[] memory) {
         return contributors;
+    }
+
+    //Get total number of contributors
+    function getTotalContributors() public view returns (uint) {
+        return contributors.length;
     }
 }
