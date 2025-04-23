@@ -72,8 +72,14 @@ contract CrowdFund {
         return contributors;
     }
 
-    //Get total number of contributors
+    //NEW: Get total number of contributors
     function getTotalContributors() public view returns (uint) {
         return contributors.length;
     }
+    // Extend deadline by additional days (only owner, only if campaign is still active)
+    function extendDeadline(uint _extraDays) public onlyOwner beforeDeadline {
+        require(_extraDays > 0, "Extension must be greater than zero");
+        deadline += _extraDays * 1 days;
+    }
+
 }
