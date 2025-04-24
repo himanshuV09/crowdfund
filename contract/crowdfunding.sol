@@ -56,7 +56,6 @@ contract CrowdFund {
         payable(msg.sender).transfer(amount);
     }
 
-    //Check campaign status
     function checkCampaignStatus() public view returns (string memory) {
         if (block.timestamp < deadline) {
             return "Active";
@@ -67,19 +66,21 @@ contract CrowdFund {
         }
     }
 
-    //Return list of all contributors
     function getAllContributors() public view returns (address[] memory) {
         return contributors;
     }
 
-    //NEW: Get total number of contributors
     function getTotalContributors() public view returns (uint) {
         return contributors.length;
     }
-    // Extend deadline by additional days (only owner, only if campaign is still active)
+
     function extendDeadline(uint _extraDays) public onlyOwner beforeDeadline {
         require(_extraDays > 0, "Extension must be greater than zero");
         deadline += _extraDays * 1 days;
     }
 
+    //Get contribution of a specific address
+    function getContributionOf(address _contributor) public view returns (uint) {
+        return contributions[_contributor];
+    }
 }
