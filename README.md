@@ -19,8 +19,9 @@ The goal of this project is to provide a transparent and secure platform for cro
 - Integrate front-end using Web3.js or Ethers.js.
 - Add user analytics and performance dashboards for campaigns.
 
-## contract Details : 0xd9145CCE52D386f254917e481eB44e9943F39138
-![image](https://github.com/user-attachments/assets/fd4b95bd-4649-4c40-9d05-d5f486958e4c)
+## contract Details : 0xA88587223d89620BF2CeFDe15B61386dCD441668
+![image](https://github.com/user-attachments/assets/bcc12e2c-a285-4fd3-881e-e3e6715dccd8)
+
 
 
 
