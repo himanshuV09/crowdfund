@@ -6,6 +6,7 @@ contract CrowdFund {
     uint public goal;
     uint public deadline;
     uint public totalRaised;
+    bool public isCancelled = false;
 
     mapping(address => uint) public contributions;
     address[] public contributors;
@@ -31,10 +32,14 @@ contract CrowdFund {
         _;
     }
 
-    function contribute() public payable beforeDeadline {
+    modifier notCancelled() {
+        require(!isCancelled, "Campaign has been cancelled");
+        _;
+    }
+
+    function contribute() public payable beforeDeadline notCancelled {
         require(msg.value > 0, "Must send some ether");
 
-        // Add contributor only once
         if (contributions[msg.sender] == 0) {
             contributors.push(msg.sender);
         }
@@ -44,12 +49,14 @@ contract CrowdFund {
     }
 
     function withdrawFunds() public onlyOwner afterDeadline {
+        require(!isCancelled, "Campaign was cancelled");
         require(totalRaised >= goal, "Funding goal not met");
         payable(owner).transfer(address(this).balance);
     }
 
-    function getRefund() public afterDeadline {
-        require(totalRaised < goal, "Funding goal was met");
+    function getRefund() public {
+        require(block.timestamp >= deadline || isCancelled, "Not eligible for refund yet");
+        require(totalRaised < goal || isCancelled, "Funding goal was met and campaign not cancelled");
         uint amount = contributions[msg.sender];
         require(amount > 0, "No contributions to refund");
         contributions[msg.sender] = 0;
@@ -57,7 +64,9 @@ contract CrowdFund {
     }
 
     function checkCampaignStatus() public view returns (string memory) {
-        if (block.timestamp < deadline) {
+        if (isCancelled) {
+            return "Cancelled";
+        } else if (block.timestamp < deadline) {
             return "Active";
         } else if (totalRaised >= goal) {
             return "Successful";
@@ -74,13 +83,17 @@ contract CrowdFund {
         return contributors.length;
     }
 
-    function extendDeadline(uint _extraDays) public onlyOwner beforeDeadline {
+    function extendDeadline(uint _extraDays) public onlyOwner beforeDeadline notCancelled {
         require(_extraDays > 0, "Extension must be greater than zero");
         deadline += _extraDays * 1 days;
     }
 
-    //Get contribution of a specific address
     function getContributionOf(address _contributor) public view returns (uint) {
         return contributions[_contributor];
+    }
+
+    //Cancel the campaign (only owner, before deadline)
+    function cancelCampaign() public onlyOwner beforeDeadline {
+        isCancelled = true;
     }
 }
