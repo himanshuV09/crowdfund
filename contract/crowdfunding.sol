@@ -92,8 +92,13 @@ contract CrowdFund {
         return contributions[_contributor];
     }
 
-    //Cancel the campaign (only owner, before deadline)
     function cancelCampaign() public onlyOwner beforeDeadline {
         isCancelled = true;
+    }
+
+    //Update the goal (only owner, before deadline, not cancelled)
+    function updateGoal(uint _newGoal) public onlyOwner beforeDeadline notCancelled {
+        require(_newGoal > 0, "Goal must be greater than zero");
+        goal = _newGoal;
     }
 }
