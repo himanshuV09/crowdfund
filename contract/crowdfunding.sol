@@ -54,6 +54,15 @@ contract CrowdFund {
         payable(owner).transfer(address(this).balance);
     }
 
+    //Withdraw Partial Funds
+    function withdrawPartialFunds(uint _amount) public onlyOwner afterDeadline {
+        require(!isCancelled, "Campaign was cancelled");
+        require(totalRaised >= goal, "Funding goal not met");
+        require(_amount > 0 && _amount <= address(this).balance, "Invalid withdrawal amount");
+        
+        payable(owner).transfer(_amount);
+    }
+
     function getRefund() public {
         require(block.timestamp >= deadline || isCancelled, "Not eligible for refund yet");
         require(totalRaised < goal || isCancelled, "Funding goal was met and campaign not cancelled");
@@ -96,7 +105,7 @@ contract CrowdFund {
         isCancelled = true;
     }
 
-    //Update the goal (only owner, before deadline, not cancelled)
+    // Update the goal (only owner, before deadline, not cancelled)
     function updateGoal(uint _newGoal) public onlyOwner beforeDeadline notCancelled {
         require(_newGoal > 0, "Goal must be greater than zero");
         goal = _newGoal;
