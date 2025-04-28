@@ -48,26 +48,28 @@ contract CrowdFund {
         totalRaised += msg.value;
     }
 
+    // ✅ New functionality: increase existing contribution
+    function increaseContribution() public payable beforeDeadline notCancelled {
+        require(msg.value > 0, "Must send some ether");
+        require(contributions[msg.sender] > 0, "You must have already contributed");
+
+        contributions[msg.sender] += msg.value;
+        totalRaised += msg.value;
+    }
+
     function withdrawFunds() public onlyOwner afterDeadline {
         require(!isCancelled, "Campaign was cancelled");
         require(totalRaised >= goal, "Funding goal not met");
         payable(owner).transfer(address(this).balance);
     }
 
-    //Withdraw Partial Funds
-    function withdrawPartialFunds(uint _amount) public onlyOwner afterDeadline {
-        require(!isCancelled, "Campaign was cancelled");
-        require(totalRaised >= goal, "Funding goal not met");
-        require(_amount > 0 && _amount <= address(this).balance, "Invalid withdrawal amount");
-        
-        payable(owner).transfer(_amount);
-    }
-
     function getRefund() public {
         require(block.timestamp >= deadline || isCancelled, "Not eligible for refund yet");
         require(totalRaised < goal || isCancelled, "Funding goal was met and campaign not cancelled");
+
         uint amount = contributions[msg.sender];
         require(amount > 0, "No contributions to refund");
+
         contributions[msg.sender] = 0;
         payable(msg.sender).transfer(amount);
     }
@@ -105,7 +107,6 @@ contract CrowdFund {
         isCancelled = true;
     }
 
-    // Update the goal (only owner, before deadline, not cancelled)
     function updateGoal(uint _newGoal) public onlyOwner beforeDeadline notCancelled {
         require(_newGoal > 0, "Goal must be greater than zero");
         goal = _newGoal;
