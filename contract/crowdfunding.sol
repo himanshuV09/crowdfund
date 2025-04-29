@@ -48,7 +48,6 @@ contract CrowdFund {
         totalRaised += msg.value;
     }
 
-    // ✅ New functionality: increase existing contribution
     function increaseContribution() public payable beforeDeadline notCancelled {
         require(msg.value > 0, "Must send some ether");
         require(contributions[msg.sender] > 0, "You must have already contributed");
@@ -110,5 +109,26 @@ contract CrowdFund {
     function updateGoal(uint _newGoal) public onlyOwner beforeDeadline notCancelled {
         require(_newGoal > 0, "Goal must be greater than zero");
         goal = _newGoal;
+    }
+
+    //Remove a contributor and refund their amount
+    function removeContributor(address _contributor) public onlyOwner beforeDeadline notCancelled {
+        uint amount = contributions[_contributor];
+        require(amount > 0, "This contributor has not contributed");
+
+        // Set contribution to 0 and update totalRaised
+        contributions[_contributor] = 0;
+        totalRaised -= amount;
+
+        // Send refund
+        payable(_contributor).transfer(amount);
+
+        for (uint i = 0; i < contributors.length; i++) {
+            if (contributors[i] == _contributor) {
+                contributors[i] = contributors[contributors.length - 1];
+                contributors.pop();
+                break;
+            }
+        }
     }
 }
