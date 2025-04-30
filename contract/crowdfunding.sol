@@ -110,7 +110,10 @@ contract CrowdFund {
         require(_newGoal > 0, "Goal must be greater than zero");
         goal = _newGoal;
     }
-
+    function changeOwner(address _newOwner) public onlyOwner {
+        require(_newOwner != address(0), "New owner cannot be zero address");
+        owner = _newOwner;
+    }
     //Remove a contributor and refund their amount
     function removeContributor(address _contributor) public onlyOwner beforeDeadline notCancelled {
         uint amount = contributions[_contributor];
