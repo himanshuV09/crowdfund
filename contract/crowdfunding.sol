@@ -7,14 +7,16 @@ contract CrowdFund {
     uint public deadline;
     uint public totalRaised;
     bool public isCancelled = false;
+    uint public minimumContribution;
 
     mapping(address => uint) public contributions;
     address[] public contributors;
 
-    constructor(uint _goal, uint _durationInDays) {
+    constructor(uint _goal, uint _durationInDays, uint _minimumContribution) {
         owner = msg.sender;
         goal = _goal;
         deadline = block.timestamp + (_durationInDays * 1 days);
+        minimumContribution = _minimumContribution;
     }
 
     modifier onlyOwner() {
@@ -38,7 +40,7 @@ contract CrowdFund {
     }
 
     function contribute() public payable beforeDeadline notCancelled {
-        require(msg.value > 0, "Must send some ether");
+        require(msg.value >= minimumContribution, "Contribution below minimum limit");
 
         if (contributions[msg.sender] == 0) {
             contributors.push(msg.sender);
@@ -49,7 +51,7 @@ contract CrowdFund {
     }
 
     function increaseContribution() public payable beforeDeadline notCancelled {
-        require(msg.value > 0, "Must send some ether");
+        require(msg.value >= minimumContribution, "Contribution below minimum limit");
         require(contributions[msg.sender] > 0, "You must have already contributed");
 
         contributions[msg.sender] += msg.value;
@@ -110,20 +112,19 @@ contract CrowdFund {
         require(_newGoal > 0, "Goal must be greater than zero");
         goal = _newGoal;
     }
+
     function changeOwner(address _newOwner) public onlyOwner {
         require(_newOwner != address(0), "New owner cannot be zero address");
         owner = _newOwner;
     }
-    //Remove a contributor and refund their amount
+
     function removeContributor(address _contributor) public onlyOwner beforeDeadline notCancelled {
         uint amount = contributions[_contributor];
         require(amount > 0, "This contributor has not contributed");
 
-        // Set contribution to 0 and update totalRaised
         contributions[_contributor] = 0;
         totalRaised -= amount;
 
-        // Send refund
         payable(_contributor).transfer(amount);
 
         for (uint i = 0; i < contributors.length; i++) {
@@ -133,5 +134,10 @@ contract CrowdFund {
                 break;
             }
         }
+    }
+
+    function updateMinimumContribution(uint _newMinimum) public onlyOwner beforeDeadline notCancelled {
+        require(_newMinimum > 0, "Minimum must be greater than zero");
+        minimumContribution = _newMinimum;
     }
 }
