@@ -10,6 +10,7 @@ contract CrowdFund {
     uint public minimumContribution;
 
     mapping(address => uint) public contributions;
+    mapping(address => string[]) public contributorMessages;
     address[] public contributors;
 
     constructor(uint _goal, uint _durationInDays, uint _minimumContribution) {
@@ -39,7 +40,7 @@ contract CrowdFund {
         _;
     }
 
-    function contribute() public payable beforeDeadline notCancelled {
+    function contribute(string memory _message) public payable beforeDeadline notCancelled {
         require(msg.value >= minimumContribution, "Contribution below minimum limit");
 
         if (contributions[msg.sender] == 0) {
@@ -48,14 +49,16 @@ contract CrowdFund {
 
         contributions[msg.sender] += msg.value;
         totalRaised += msg.value;
+        contributorMessages[msg.sender].push(_message);
     }
 
-    function increaseContribution() public payable beforeDeadline notCancelled {
+    function increaseContribution(string memory _message) public payable beforeDeadline notCancelled {
         require(msg.value >= minimumContribution, "Contribution below minimum limit");
         require(contributions[msg.sender] > 0, "You must have already contributed");
 
         contributions[msg.sender] += msg.value;
         totalRaised += msg.value;
+        contributorMessages[msg.sender].push(_message);
     }
 
     function withdrawFunds() public onlyOwner afterDeadline {
@@ -104,6 +107,10 @@ contract CrowdFund {
         return contributions[_contributor];
     }
 
+    function getMessagesOf(address _contributor) public view returns (string[] memory) {
+        return contributorMessages[_contributor];
+    }
+
     function cancelCampaign() public onlyOwner beforeDeadline {
         isCancelled = true;
     }
@@ -134,6 +141,8 @@ contract CrowdFund {
                 break;
             }
         }
+
+        delete contributorMessages[_contributor];
     }
 
     function updateMinimumContribution(uint _newMinimum) public onlyOwner beforeDeadline notCancelled {
