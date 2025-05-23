@@ -149,4 +149,19 @@ contract CrowdFund {
         require(_newMinimum > 0, "Minimum must be greater than zero");
         minimumContribution = _newMinimum;
     }
+
+    //New Functionality: Get detailed contributor info
+    function getContributorDetails() public view returns (address[] memory, uint[] memory, string[][] memory) {
+        uint contributorCount = contributors.length;
+        uint[] memory amounts = new uint[](contributorCount);
+        string[][] memory messages = new string[][](contributorCount);
+
+        for (uint i = 0; i < contributorCount; i++) {
+            address contributor = contributors[i];
+            amounts[i] = contributions[contributor];
+            messages[i] = contributorMessages[contributor];
+        }
+
+        return (contributors, amounts, messages);
+    }
 }
