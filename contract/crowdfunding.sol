@@ -150,7 +150,7 @@ contract CrowdFund {
         minimumContribution = _newMinimum;
     }
 
-    //New Functionality: Get detailed contributor info
+    // ✅ New Functionality: Get detailed contributor info
     function getContributorDetails() public view returns (address[] memory, uint[] memory, string[][] memory) {
         uint contributorCount = contributors.length;
         uint[] memory amounts = new uint[](contributorCount);
@@ -164,4 +164,20 @@ contract CrowdFund {
 
         return (contributors, amounts, messages);
     }
+    function getTopContributor() public view returns (address, uint) {
+        address topContributor = address(0);
+        uint highestContribution = 0;
+
+        for (uint i = 0; i < contributors.length; i++) {
+            address contributor = contributors[i];
+            uint amount = contributions[contributor];
+            if (amount > highestContribution) {
+                highestContribution = amount;
+                topContributor = contributor;
+            }
+        }
+
+        return (topContributor, highestContribution);
+    }
+
 }
