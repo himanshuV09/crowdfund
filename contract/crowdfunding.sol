@@ -150,7 +150,7 @@ contract CrowdFund {
         minimumContribution = _newMinimum;
     }
 
-    // ✅ New Functionality: Get detailed contributor info
+    //Contributor Details
     function getContributorDetails() public view returns (address[] memory, uint[] memory, string[][] memory) {
         uint contributorCount = contributors.length;
         uint[] memory amounts = new uint[](contributorCount);
@@ -164,6 +164,7 @@ contract CrowdFund {
 
         return (contributors, amounts, messages);
     }
+
     function getTopContributor() public view returns (address, uint) {
         address topContributor = address(0);
         uint highestContribution = 0;
@@ -180,4 +181,9 @@ contract CrowdFund {
         return (topContributor, highestContribution);
     }
 
+    //Update a contributor's message by index
+    function updateContributorMessage(uint index, string memory newMessage) public {
+        require(index < contributorMessages[msg.sender].length, "Invalid message index");
+        contributorMessages[msg.sender][index] = newMessage;
+    }
 }
