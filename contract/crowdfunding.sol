@@ -13,6 +13,10 @@ contract CrowdFund {
     mapping(address => string[]) public contributorMessages;
     address[] public contributors;
 
+    // New: Voting to cancel
+    mapping(address => bool) public hasVoted;
+    uint public votesToCancel;
+
     constructor(uint _goal, uint _durationInDays, uint _minimumContribution) {
         owner = msg.sender;
         goal = _goal;
@@ -150,7 +154,6 @@ contract CrowdFund {
         minimumContribution = _newMinimum;
     }
 
-    //Contributor Details
     function getContributorDetails() public view returns (address[] memory, uint[] memory, string[][] memory) {
         uint contributorCount = contributors.length;
         uint[] memory amounts = new uint[](contributorCount);
@@ -181,9 +184,21 @@ contract CrowdFund {
         return (topContributor, highestContribution);
     }
 
-    //Update a contributor's message by index
     function updateContributorMessage(uint index, string memory newMessage) public {
         require(index < contributorMessages[msg.sender].length, "Invalid message index");
         contributorMessages[msg.sender][index] = newMessage;
+    }
+
+    //Vote to cancel campaign
+    function voteToCancel() public notCancelled beforeDeadline {
+        require(contributions[msg.sender] > 0, "Only contributors can vote");
+        require(!hasVoted[msg.sender], "Already voted");
+
+        hasVoted[msg.sender] = true;
+        votesToCancel++;
+
+        if (votesToCancel > contributors.length / 2) {
+            isCancelled = true;
+        }
     }
 }
