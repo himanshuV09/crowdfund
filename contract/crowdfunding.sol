@@ -13,7 +13,6 @@ contract CrowdFund {
     mapping(address => string[]) public contributorMessages;
     address[] public contributors;
 
-    // New: Voting to cancel
     mapping(address => bool) public hasVoted;
     uint public votesToCancel;
 
@@ -129,26 +128,6 @@ contract CrowdFund {
         owner = _newOwner;
     }
 
-    function removeContributor(address _contributor) public onlyOwner beforeDeadline notCancelled {
-        uint amount = contributions[_contributor];
-        require(amount > 0, "This contributor has not contributed");
-
-        contributions[_contributor] = 0;
-        totalRaised -= amount;
-
-        payable(_contributor).transfer(amount);
-
-        for (uint i = 0; i < contributors.length; i++) {
-            if (contributors[i] == _contributor) {
-                contributors[i] = contributors[contributors.length - 1];
-                contributors.pop();
-                break;
-            }
-        }
-
-        delete contributorMessages[_contributor];
-    }
-
     function updateMinimumContribution(uint _newMinimum) public onlyOwner beforeDeadline notCancelled {
         require(_newMinimum > 0, "Minimum must be greater than zero");
         minimumContribution = _newMinimum;
@@ -189,7 +168,6 @@ contract CrowdFund {
         contributorMessages[msg.sender][index] = newMessage;
     }
 
-    //Vote to cancel campaign
     function voteToCancel() public notCancelled beforeDeadline {
         require(contributions[msg.sender] > 0, "Only contributors can vote");
         require(!hasVoted[msg.sender], "Already voted");
@@ -200,5 +178,21 @@ contract CrowdFund {
         if (votesToCancel > contributors.length / 2) {
             isCancelled = true;
         }
+    }
+
+    //Paginated Contributor List
+    function getContributorsByRange(uint start, uint end) public view returns (address[] memory, uint[] memory) {
+        require(start < end && end <= contributors.length, "Invalid range");
+
+        uint len = end - start;
+        address[] memory selectedContributors = new address[](len);
+        uint[] memory selectedAmounts = new uint[](len);
+
+        for (uint i = 0; i < len; i++) {
+            selectedContributors[i] = contributors[start + i];
+            selectedAmounts[i] = contributions[contributors[start + i]];
+        }
+
+        return (selectedContributors, selectedAmounts);
     }
 }
