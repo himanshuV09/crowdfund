@@ -16,6 +16,11 @@ contract CrowdFund {
     mapping(address => bool) public hasVoted;
     uint public votesToCancel;
 
+    // Reward system
+    mapping(address => string) public contributorRewards;
+    uint public rewardThreshold;
+    string public rewardDescription;
+
     constructor(uint _goal, uint _durationInDays, uint _minimumContribution) {
         owner = msg.sender;
         goal = _goal;
@@ -53,6 +58,10 @@ contract CrowdFund {
         contributions[msg.sender] += msg.value;
         totalRaised += msg.value;
         contributorMessages[msg.sender].push(_message);
+
+        if (contributions[msg.sender] >= rewardThreshold && bytes(rewardDescription).length > 0) {
+            contributorRewards[msg.sender] = rewardDescription;
+        }
     }
 
     function increaseContribution(string memory _message) public payable beforeDeadline notCancelled {
@@ -62,6 +71,10 @@ contract CrowdFund {
         contributions[msg.sender] += msg.value;
         totalRaised += msg.value;
         contributorMessages[msg.sender].push(_message);
+
+        if (contributions[msg.sender] >= rewardThreshold && bytes(rewardDescription).length > 0) {
+            contributorRewards[msg.sender] = rewardDescription;
+        }
     }
 
     function withdrawFunds() public onlyOwner afterDeadline {
@@ -133,7 +146,9 @@ contract CrowdFund {
         minimumContribution = _newMinimum;
     }
 
-    function getContributorDetails() public view returns (address[] memory, uint[] memory, string[][] memory) {
+    function getContributorDetails() public view returns (
+        address[] memory, uint[] memory, string[][] memory
+    ) {
         uint contributorCount = contributors.length;
         uint[] memory amounts = new uint[](contributorCount);
         string[][] memory messages = new string[][](contributorCount);
@@ -180,7 +195,6 @@ contract CrowdFund {
         }
     }
 
-    //Paginated Contributor List
     function getContributorsByRange(uint start, uint end) public view returns (address[] memory, uint[] memory) {
         require(start < end && end <= contributors.length, "Invalid range");
 
@@ -194,5 +208,14 @@ contract CrowdFund {
         }
 
         return (selectedContributors, selectedAmounts);
+    }
+    function setRewardTier(uint _threshold, string memory _description) public onlyOwner {
+        require(_threshold > minimumContribution, "Threshold must be greater than minimum contribution");
+        rewardThreshold = _threshold;
+        rewardDescription = _description;
+    }
+
+    function getRewardFor(address _contributor) public view returns (string memory) {
+        return contributorRewards[_contributor];
     }
 }
