@@ -7,21 +7,35 @@ contract CrowdFund {
     uint public deadline;
     uint public totalRaised;
     bool public isCancelled = false;
+    bool public isPaused = false;
     uint public minimumContribution;
 
     mapping(address => uint) public contributions;
     mapping(address => string[]) public contributorMessages;
-    address[] public contributors;
-
-    mapping(address => bool) public hasVoted;
-    uint public votesToCancel;
-
-    // Reward system
+    mapping(address => uint) public messageEditCount;
     mapping(address => string) public contributorRewards;
+    mapping(address => bool) public hasVoted;
+    mapping(address => string) public contributorBadge;
+
     uint public rewardThreshold;
     string public rewardDescription;
+    uint public votesToCancel;
+    uint public milestoneWithdrawn;
+    uint public messageEditLimit = 3;
+
+    address[] public contributors;
+
+    // Events
+    event ContributionReceived(address contributor, uint amount, string message);
+    event CampaignPaused();
+    event CampaignResumed();
+    event CampaignCancelled();
+    event FundsWithdrawn(uint amount);
+    event RefundIssued(address contributor, uint amount);
+    event VoteToCancel(address voter);
 
     constructor(uint _goal, uint _durationInDays, uint _minimumContribution) {
+        require(_goal > 0 && _durationInDays > 0 && _minimumContribution > 0, "Invalid parameters");
         owner = msg.sender;
         goal = _goal;
         deadline = block.timestamp + (_durationInDays * 1 days);
@@ -48,8 +62,13 @@ contract CrowdFund {
         _;
     }
 
-    function contribute(string memory _message) public payable beforeDeadline notCancelled {
-        require(msg.value >= minimumContribution, "Contribution below minimum limit");
+    modifier notPaused() {
+        require(!isPaused, "Campaign is paused");
+        _;
+    }
+
+    function contribute(string memory _message) public payable beforeDeadline notCancelled notPaused {
+        require(msg.value >= minimumContribution, "Below minimum contribution");
 
         if (contributions[msg.sender] == 0) {
             contributors.push(msg.sender);
@@ -58,129 +77,47 @@ contract CrowdFund {
         contributions[msg.sender] += msg.value;
         totalRaised += msg.value;
         contributorMessages[msg.sender].push(_message);
+        _assignReward(msg.sender);
+        _assignBadge(msg.sender);
 
-        if (contributions[msg.sender] >= rewardThreshold && bytes(rewardDescription).length > 0) {
-            contributorRewards[msg.sender] = rewardDescription;
-        }
+        emit ContributionReceived(msg.sender, msg.value, _message);
     }
 
-    function increaseContribution(string memory _message) public payable beforeDeadline notCancelled {
-        require(msg.value >= minimumContribution, "Contribution below minimum limit");
-        require(contributions[msg.sender] > 0, "You must have already contributed");
+    function increaseContribution(string memory _message) public payable beforeDeadline notCancelled notPaused {
+        require(msg.value >= minimumContribution, "Below minimum contribution");
+        require(contributions[msg.sender] > 0, "Not yet a contributor");
 
         contributions[msg.sender] += msg.value;
         totalRaised += msg.value;
         contributorMessages[msg.sender].push(_message);
+        _assignReward(msg.sender);
+        _assignBadge(msg.sender);
 
-        if (contributions[msg.sender] >= rewardThreshold && bytes(rewardDescription).length > 0) {
-            contributorRewards[msg.sender] = rewardDescription;
-        }
+        emit ContributionReceived(msg.sender, msg.value, _message);
     }
 
-    function withdrawFunds() public onlyOwner afterDeadline {
-        require(!isCancelled, "Campaign was cancelled");
-        require(totalRaised >= goal, "Funding goal not met");
-        payable(owner).transfer(address(this).balance);
+    function withdrawMilestoneFunds(uint percent) public onlyOwner afterDeadline notCancelled {
+        require(totalRaised >= goal, "Goal not reached");
+        require(percent > 0 && percent <= 100, "Invalid percent");
+        uint withdrawAmount = (address(this).balance * percent) / 100;
+        require(milestoneWithdrawn + withdrawAmount <= address(this).balance, "Over withdrawal");
+
+        milestoneWithdrawn += withdrawAmount;
+        payable(owner).transfer(withdrawAmount);
+        emit FundsWithdrawn(withdrawAmount);
     }
 
     function getRefund() public {
-        require(block.timestamp >= deadline || isCancelled, "Not eligible for refund yet");
-        require(totalRaised < goal || isCancelled, "Funding goal was met and campaign not cancelled");
+        require(block.timestamp >= deadline || isCancelled, "Not eligible for refund");
+        require(totalRaised < goal || isCancelled, "Goal met or not cancelled");
 
         uint amount = contributions[msg.sender];
-        require(amount > 0, "No contributions to refund");
+        require(amount > 0, "Nothing to refund");
 
         contributions[msg.sender] = 0;
         payable(msg.sender).transfer(amount);
-    }
 
-    function checkCampaignStatus() public view returns (string memory) {
-        if (isCancelled) {
-            return "Cancelled";
-        } else if (block.timestamp < deadline) {
-            return "Active";
-        } else if (totalRaised >= goal) {
-            return "Successful";
-        } else {
-            return "Failed";
-        }
-    }
-
-    function getAllContributors() public view returns (address[] memory) {
-        return contributors;
-    }
-
-    function getTotalContributors() public view returns (uint) {
-        return contributors.length;
-    }
-
-    function extendDeadline(uint _extraDays) public onlyOwner beforeDeadline notCancelled {
-        require(_extraDays > 0, "Extension must be greater than zero");
-        deadline += _extraDays * 1 days;
-    }
-
-    function getContributionOf(address _contributor) public view returns (uint) {
-        return contributions[_contributor];
-    }
-
-    function getMessagesOf(address _contributor) public view returns (string[] memory) {
-        return contributorMessages[_contributor];
-    }
-
-    function cancelCampaign() public onlyOwner beforeDeadline {
-        isCancelled = true;
-    }
-
-    function updateGoal(uint _newGoal) public onlyOwner beforeDeadline notCancelled {
-        require(_newGoal > 0, "Goal must be greater than zero");
-        goal = _newGoal;
-    }
-
-    function changeOwner(address _newOwner) public onlyOwner {
-        require(_newOwner != address(0), "New owner cannot be zero address");
-        owner = _newOwner;
-    }
-
-    function updateMinimumContribution(uint _newMinimum) public onlyOwner beforeDeadline notCancelled {
-        require(_newMinimum > 0, "Minimum must be greater than zero");
-        minimumContribution = _newMinimum;
-    }
-
-    function getContributorDetails() public view returns (
-        address[] memory, uint[] memory, string[][] memory
-    ) {
-        uint contributorCount = contributors.length;
-        uint[] memory amounts = new uint[](contributorCount);
-        string[][] memory messages = new string[][](contributorCount);
-
-        for (uint i = 0; i < contributorCount; i++) {
-            address contributor = contributors[i];
-            amounts[i] = contributions[contributor];
-            messages[i] = contributorMessages[contributor];
-        }
-
-        return (contributors, amounts, messages);
-    }
-
-    function getTopContributor() public view returns (address, uint) {
-        address topContributor = address(0);
-        uint highestContribution = 0;
-
-        for (uint i = 0; i < contributors.length; i++) {
-            address contributor = contributors[i];
-            uint amount = contributions[contributor];
-            if (amount > highestContribution) {
-                highestContribution = amount;
-                topContributor = contributor;
-            }
-        }
-
-        return (topContributor, highestContribution);
-    }
-
-    function updateContributorMessage(uint index, string memory newMessage) public {
-        require(index < contributorMessages[msg.sender].length, "Invalid message index");
-        contributorMessages[msg.sender][index] = newMessage;
+        emit RefundIssued(msg.sender, amount);
     }
 
     function voteToCancel() public notCancelled beforeDeadline {
@@ -190,32 +127,103 @@ contract CrowdFund {
         hasVoted[msg.sender] = true;
         votesToCancel++;
 
+        emit VoteToCancel(msg.sender);
+
         if (votesToCancel > contributors.length / 2) {
             isCancelled = true;
+            emit CampaignCancelled();
         }
     }
 
-    function getContributorsByRange(uint start, uint end) public view returns (address[] memory, uint[] memory) {
-        require(start < end && end <= contributors.length, "Invalid range");
+    function updateContributorMessage(uint index, string memory newMessage) public {
+        require(index < contributorMessages[msg.sender].length, "Invalid index");
+        require(messageEditCount[msg.sender] < messageEditLimit, "Edit limit exceeded");
 
-        uint len = end - start;
-        address[] memory selectedContributors = new address[](len);
-        uint[] memory selectedAmounts = new uint[](len);
-
-        for (uint i = 0; i < len; i++) {
-            selectedContributors[i] = contributors[start + i];
-            selectedAmounts[i] = contributions[contributors[start + i]];
-        }
-
-        return (selectedContributors, selectedAmounts);
+        contributorMessages[msg.sender][index] = newMessage;
+        messageEditCount[msg.sender]++;
     }
+
+    function pauseCampaign() public onlyOwner {
+        isPaused = true;
+        emit CampaignPaused();
+    }
+
+    function resumeCampaign() public onlyOwner {
+        isPaused = false;
+        emit CampaignResumed();
+    }
+
+    function updateGoal(uint _newGoal) public onlyOwner beforeDeadline notCancelled {
+        require(_newGoal > totalRaised, "New goal must exceed current raised amount");
+        goal = _newGoal;
+    }
+
     function setRewardTier(uint _threshold, string memory _description) public onlyOwner {
-        require(_threshold > minimumContribution, "Threshold must be greater than minimum contribution");
+        require(_threshold > minimumContribution, "Threshold too low");
         rewardThreshold = _threshold;
         rewardDescription = _description;
     }
 
-    function getRewardFor(address _contributor) public view returns (string memory) {
-        return contributorRewards[_contributor];
+    function _assignReward(address contributor) internal {
+        if (contributions[contributor] >= rewardThreshold && bytes(rewardDescription).length > 0) {
+            contributorRewards[contributor] = rewardDescription;
+        }
+    }
+
+    function _assignBadge(address contributor) internal {
+        uint amount = contributions[contributor];
+        if (amount >= 1 ether) {
+            contributorBadge[contributor] = "Gold";
+        } else if (amount >= 0.5 ether) {
+            contributorBadge[contributor] = "Silver";
+        } else {
+            contributorBadge[contributor] = "Bronze";
+        }
+    }
+
+    // ========== View Functions ==========
+
+    function getAllContributors() public view returns (address[] memory) {
+        return contributors;
+    }
+
+    function getTotalContributors() public view returns (uint) {
+        return contributors.length;
+    }
+
+    function getContributionOf(address contributor) public view returns (uint) {
+        return contributions[contributor];
+    }
+
+    function getMessagesOf(address contributor) public view returns (string[] memory) {
+        return contributorMessages[contributor];
+    }
+
+    function getRewardFor(address contributor) public view returns (string memory) {
+        return contributorRewards[contributor];
+    }
+
+    function getBadgeOf(address contributor) public view returns (string memory) {
+        return contributorBadge[contributor];
+    }
+
+    function getTopContributor() public view returns (address, uint) {
+        address top;
+        uint highest = 0;
+        for (uint i = 0; i < contributors.length; i++) {
+            address addr = contributors[i];
+            if (contributions[addr] > highest) {
+                highest = contributions[addr];
+                top = addr;
+            }
+        }
+        return (top, highest);
+    }
+
+    function checkCampaignStatus() public view returns (string memory) {
+        if (isCancelled) return "Cancelled";
+        if (block.timestamp < deadline) return "Active";
+        if (totalRaised >= goal) return "Successful";
+        return "Failed";
     }
 }
