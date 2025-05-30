@@ -16,6 +16,7 @@ contract CrowdFund {
     mapping(address => string) public contributorRewards;
     mapping(address => bool) public hasVoted;
     mapping(address => string) public contributorBadge;
+    mapping(address => string) public publicFeedback;
 
     uint public rewardThreshold;
     string public rewardDescription;
@@ -179,6 +180,24 @@ contract CrowdFund {
         } else {
             contributorBadge[contributor] = "Bronze";
         }
+    }
+
+    function leavePublicFeedback(string memory feedback) public {
+        require(contributions[msg.sender] > 0, "Only contributors can leave feedback");
+        require(bytes(feedback).length > 0, "Feedback cannot be empty");
+
+        publicFeedback[msg.sender] = feedback;
+    }
+
+    function getAllFeedback() public view returns (address[] memory, string[] memory) {
+        uint count = contributors.length;
+        string[] memory feedbacks = new string[](count);
+
+        for (uint i = 0; i < count; i++) {
+            feedbacks[i] = publicFeedback[contributors[i]];
+        }
+
+        return (contributors, feedbacks);
     }
 
     // ========== View Functions ==========
