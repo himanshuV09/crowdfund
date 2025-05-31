@@ -18,7 +18,7 @@
     "solidity",
     "hardhat"
   ],
-  "author": "Your Name",
+  "author": "Himanshu Verma",
   "license": "MIT",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
