@@ -1,0 +1,32 @@
+{
+  "name": "crowdfund",
+  "version": "1.0.0",
+  "description": "A decentralized crowdfunding platform built on Core blockchain",
+  "main": "index.js",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "deploy": "npx hardhat run scripts/deploy.js --network coreTestnet",
+    "test": "npx hardhat test",
+    "node": "npx hardhat node",
+    "verify": "npx hardhat verify --network coreTestnet"
+  },
+  "keywords": [
+    "blockchain",
+    "crowdfunding",
+    "smart-contracts",
+    "core-blockchain",
+    "solidity",
+    "hardhat"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.0",
+    "hardhat": "^2.19.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0",
+    "dotenv": "^16.3.1"
+  }
+}
