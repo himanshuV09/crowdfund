@@ -129,10 +129,4 @@ contract Crowdfund {
     function isCampaignActive(uint256 _id) public view campaignExists(_id) returns (bool) {
         return block.timestamp < campaigns[_id].deadline && !campaigns[_id].withdrawn;
     }
-
-    function getCampaignProgress(uint256 _id) public view campaignExists(_id) returns (uint256) {
-        Campaign memory campaign = campaigns[_id];
-        if (campaign.target == 0) return 0;
-        return (campaign.amountCollected * 100) / campaign.target;
-    }
 }
